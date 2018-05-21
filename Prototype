@@ -55,8 +55,10 @@ except arcpy.ExecuteError:
 # Output should include...
 # I) Raster of impacted landcover in the area
 # II) Vector of impacted land use parcels in the area
-# III) Vector of stream sections impacted
-# IV) Table of associated environmental, economic, and human welfare costs
+# III) Vector of average precipitation in the area 
+# IV) Vector of stream sections impacted
+# V) Table of associated environmental, economic, and human welfare cost
+# VI) Extra: Terrain flow direction layer from function (A)
 
 # Confirmation of tool execution
 # Check for outputs

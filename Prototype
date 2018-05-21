@@ -1,0 +1,69 @@
+# Intitial drafting of final tool
+# Major workflow steps:
+# 1) Pesudocoding, drafting evaluation workflow
+# 2) Function/Module creation
+# 3) Integration of user inputs
+# 4) Automation of evaluation process workflow
+# 5) Final testing
+# 6) Integration of API scraping
+
+# import necessary modules, files
+import os
+import arcpy
+from arcpy import env
+from arcpy.sa import *
+
+# set up environment variable for ArcGIS functionality
+# NEED TO SET UP USER INPUT
+default_workspace = r'C:\'
+arcpy.env.workspace = r'C:\'
+outWorkspace = r'C:\'
+arcpy.env.overwriteOutput = True
+
+# Checkout necessary extensions
+# Spatial Analyst
+# check if the Spatial Analyst extention is available
+try:
+    if arcpy.CheckExtension(ext) == "Available":
+        # check out the Spatial Analyst Extention
+        arcpy.CheckOutExtension(ext)
+        print '{} Analyst Extension enabled.'.format(ext)
+    else:
+        # raise a custom exception for troubleshooting
+        raise LicenseError
+
+# except statements for returning error message when extention is not available
+except LicenseError:
+    print '{} Analyst license is unavailable'.format(ext)
+except arcpy.ExecuteError:
+    print(arcpy.GetMessages(2))
+
+# Create GDB for storage of results
+
+# Project necessary layers for analysis into common projection (WA Stateplane)
+
+# Create list of ArcGIS objects (vector, raster, table)
+
+# Functions for Tool (MAKE SURE TO INCLUDE VALIDATION OF GEOPROCESSING EXECUTIONS)
+# A) Hillshade/Terrain flow, generates hill shade and overlays with precipitation level to caluclate flow direction on terrain
+# B) Landcover Impact, calculates landcover area impacted by pollution sources (site locations), return total area affected and type
+# C) Landuse Impact, calculates land use parcels that are impacted by pollution sources (site locations), return total area affected and type
+# D) !Maybe...Precipitation volume, calculates the volume of rain the pollution sites are exposed to on average
+# E) Stream assessmennt, evaluates impact on streams using output from (A) function, returns shapefile with affected stream sections
+# F) Quantification of cost, based on output from (B), (C), (E), calculate cost to environment, economy, and community
+
+# Output should include...
+# I) Raster of impacted landcover in the area
+# II) Vector of impacted land use parcels in the area
+# III) Vector of stream sections impacted
+# IV) Table of associated environmental, economic, and human welfare costs
+
+# Confirmation of tool execution
+# Check for outputs
+# if os.path.exists() == True:
+
+# Checkin Extentions
+arcpy.CheckInExtension('spatial')
+print '{} Analyst Extension disabled.'.format(ext)
+
+# Delete locking variables, release resources (cursors, objects, etc.)

@@ -45,12 +45,12 @@ except arcpy.ExecuteError:
 # Create list of ArcGIS objects (vector, raster, table)
 
 # Functions for Tool (MAKE SURE TO INCLUDE VALIDATION OF GEOPROCESSING EXECUTIONS)
-# A) Hillshade/Terrain flow, generates hill shade and overlays with precipitation level to caluclate flow direction on terrain
+# A) Hillshade/Terrain flow, generates hill shade and overlays with precipitation level to calculate flow direction on terrain, return layer of flow direction
 # B) Landcover Impact, calculates landcover area impacted by pollution sources (site locations), return total area affected and type
 # C) Landuse Impact, calculates land use parcels that are impacted by pollution sources (site locations), return total area affected and type
-# D) !Maybe...Precipitation volume, calculates the volume of rain the pollution sites are exposed to on average
+# D) Precipitation volume, calculates the volume of rain the pollution sites are exposed to on average
 # E) Stream assessmennt, evaluates impact on streams using output from (A) function, returns shapefile with affected stream sections
-# F) Quantification of cost, based on output from (B), (C), (E), calculate cost to environment, economy, and community
+# F) Quantification of cost, based on output from (B), (C), (E), calculate cost to environment, economy, and community, return table
 
 # Output should include...
 # I) Raster of impacted landcover in the area

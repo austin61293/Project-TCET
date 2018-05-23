@@ -41,6 +41,7 @@ except arcpy.ExecuteError:
 # Create GDB for storage of results
 
 # Project necessary layers for analysis into common projection (WA Stateplane)
+# Make this a preprocessing tool 
 
 # Create list of ArcGIS objects (vector, raster, table)
 

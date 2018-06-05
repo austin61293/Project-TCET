@@ -1,0 +1,65 @@
+# Date: Jun 3rd 2018
+# Author: Austin Lin
+# Course: MGIS GEOG 565
+
+# This script aims to compile multiple DEM or imagery inputs and
+# output a singular raster layer that combines all the inputs into a 
+# singular raster output for analysis.
+
+# DISCLAIMER:
+# This script requires arcpy licence and integration into ArcGIS
+# script toolbox to use, cannot be run directly from Python shell.
+
+# Import necessary modules/libraries
+import os
+import arcpy
+from arcpy import env
+
+# Define Input Variables
+# Define workspace
+env.workspace = arcpy.GetParameterAsText(0)
+arcpy.env.overwriteOutput = True
+arcpy.AddMessage("Current Workspace: {}".format(env.workspace))
+
+# Create user-defined file GDB for analysis
+# File GDB name, string parameter
+gdb_name = arcpy.GetParameterAsText(1)
+
+# Optional generation of GDB for output definition
+if gdb_name == "NULL":
+    arcpy.AddMessage("No GDB was created, output location set to {}.".format(env.workspace))
+    gdb_path = env.workspace
+else:
+    arcpy.CreateFileGDB_management(env.workspace, gdb_name)
+    # Confirmation of GDB location
+    arcpy.AddMessage("File GDB '{}' created at {}.".format(gdb_name, env.workspace))
+    # Define path of newly created file GDB for analysis output
+    if os.path.exists(os.path.join(env.workspace, gdb_name + ".gdb")) == True:
+        gdb_path = os.path.join(env.workspace, gdb_name + ".gdb")
+    else:
+        arcpy.AddMessage("File GDB '{}' was not located successfully. Output location not defined.".format(gdb_name))
+        arcpy.AddMessage("Output Error: please define or create an output location for operation.")
+
+# Output name definition by user
+output_name = arcpy.GetParameterAsText(2)
+
+# Number of bands for mosaic to new raster function
+bands = arcpy.GetParameterAsText(3)
+
+# Mosaic to new raster stitching option
+dem_list = [arcpy.GetParameterAsText(4)]
+arcpy.AddMessage("Input files for processing..." )
+arcpy.AddMessage(dem_list)
+
+# Converting list of inputs into usable format for mosaic to raster function
+liststr = ""
+for i in dem_list:
+    liststr = liststr + i + ";"
+liststr = liststr[:-1]
+
+# Stitching multiple inputs into singular raster file
+arcpy.AddMessage("Mosaic stiching starting...")
+arcpy.MosaicToNewRaster_management(liststr, gdb_path, output_name, \
+                                                           "", "8_BIT_UNSIGNED", "", bands, "LAST", "FIRST")
+arcpy.AddMessage("Mosaic stiching completed...")
+

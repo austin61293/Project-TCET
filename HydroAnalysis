@@ -1,0 +1,153 @@
+# Date: June 3rd 2018
+# Author: Austin Lin
+# Course: MGIS GEOG 565
+
+# This script aims to delineation streams and basins of an area
+# from a single digital elevation model (DEM) file. The output produced
+# from this script can be used to determine downstream impact of 
+# waste that can be distributed through either soil or water flow.
+
+# DISCLAIMER:
+# This script requires arcpy licence and integration into ArcGIS 
+# script toolbox to use, cannot be run directly from standard Python shell.
+
+# Import necessary modules/libraries
+import os
+import arcpy
+from arcpy import env
+from arcpy.sa import *
+
+# Define Input Variables
+# Define workspace
+env.workspace = arcpy.GetParameterAsText(0)
+arcpy.env.overwriteOutput = True
+arcpy.AddMessage("Current Workspace: {}".format(env.workspace))
+
+# Create user-defined file GDB for analysis
+# File GDB name, string parameter
+gdb_name = arcpy.GetParameterAsText(1)
+
+# Optional generation of GDB for output definition
+if gdb_name == "NULL":
+    arcpy.AddMessage("No GDB was created, output location set to {}.".format(env.workspace))
+    gdb_path = env.workspace
+else:
+    arcpy.CreateFileGDB_management(env.workspace, gdb_name)
+    # Confirmation message of GDB location
+    arcpy.AddMessage("File GDB '{}' created at {}.".format(gdb_name, env.workspace))
+    # Define path of newly created file GDB for analysis output
+    if os.path.exists(os.path.join(env.workspace, gdb_name + ".gdb"))== True:
+        gdb_path = os.path.join(env.workspace, gdb_name + ".gdb")
+    else:
+        arcpy.AddMessage("File GDB '{}' was not located successfully. Output location not defined.".format(gdb_name))
+        arcpy.AddMessage("Output Error: please define or create an output location for operation.")
+
+# Study location name parameter
+st_name = arcpy.GetParameterAsText(2)
+
+# Intermediate Data handling option, boolean parameter
+keep_opt = arcpy.GetParameterAsText(3)
+
+# Input DEM raster for analysis
+DEM = arcpy.GetParameterAsText(4)
+
+# Analysis extension checkout
+try:
+    # Check if the Spatial Analyst extention is available
+    if arcpy.CheckExtension("Spatial") == "Available":
+        # if available, check it out.
+        arcpy.CheckOutExtension("Spatial")
+        arcpy.AddMessage("Checked out Spatial Analyst extension.")
+    else:
+        # otherwise, arcpy.AddMessage a message
+        arcpy.AddMessage("Spatial Analyst license is unabailable.")
+
+#Except loop for execution error of tool
+except arcpy.ExecuteError as e:
+    arcpy.AddMessage(e)
+except:
+    arcpy.AddMessage(arcpy.GetMessages(2))
+
+# Stream delineation workflow    
+# Arcgis fill tool (cover up small imperfection in raster)
+arcpy.AddMessage("Filling DEM starting...")
+dem_fill = Fill(DEM, "")
+dem_fill.save(os.path.join(gdb_path, st_name + "_fill"))
+fillRaster = os.path.join(gdb_path, st_name + "_fill")
+arcpy.AddMessage("Filling DEM complete...")
+
+# Flow direction (determine direction of water flow via DEM)
+arcpy.AddMessage("Flow direction starting...")
+dem_flowdir = FlowDirection(os.path.join(gdb_path, st_name + "_fill"), "")
+dem_flowdir.save(os.path.join(gdb_path, st_name + "_flowdir"))
+flowdirRas = os.path.join(gdb_path, st_name + "_flowdir")
+arcpy.AddMessage("Flow direction complete...")
+
+# Flow accumulation (generate raster showing convergence of water flow)
+arcpy.AddMessage("Flow accumulation starting...")
+dem_flowacc = FlowDirection(os.path.join(gdb_path, st_name + "_flowdir"), "")
+dem_flowacc.save(os.path.join(gdb_path, st_name + "_flowacc"))
+flowaccRas = os.path.join(gdb_path, st_name + "_flowacc")
+arcpy.AddMessage("Flow accumulation complete...")
+
+# Con tool for verification of flow accumulation result (DEM + flowacc for if conditions)
+arcpy.AddMessage("Con starting...")
+dem_con = Con(fillRaster, flowdirRas, flowdirRas)
+dem_con.save(os.path.join(gdb_path, st_name + "_con"))
+conRaster = os.path.join(gdb_path, st_name + "_con")
+arcpy.AddMessage("Con complete...")
+
+# Stream order tool for calculating True streams from flow accumulation (con + flowdir)
+arcpy.AddMessage("Stream order starting...")
+dem_streamorder = StreamOrder(conRaster, flowdirRas)
+dem_streamorder.save(os.path.join(gdb_path, st_name + "_streamord"))
+SORaster = os.path.join(gdb_path, st_name + "_streamord")
+arcpy.AddMessage("Stream order complete...")
+
+# Convert stream raster to feature class (streamord + flowdir)
+arcpy.AddMessage("Extracting stream to feature starting...")
+StreamToFeature(SORaster, flowdirRas, os.path.join(gdb_path, st_name + "_stream2F"),"")
+StreamF = os.path.join(gdb_path, st_name + "_stream2F")
+arcpy.AddMessage("Extracing stream to feature complete...")
+
+# Definition query on stream features class to isolate relative streams (grid_code <> 1 AND... 5)
+arcpy.AddMessage("Stream filtering starting...")
+arcpy.FeatureClassToFeatureClass_conversion (StreamF, gdb_path, st_name + "_streamfiltered", 
+                                                                    "grid_code <> 1 AND grid_code <> 2 AND grid_code <> \
+                                                                     3 AND grid_code <> 4 AND grid_code <> 5")
+StreamFilt = os.path.join(gdb_path, st_name + "_streamfiltered")
+arcpy.AddMessage("Stream filtering complete...")
+
+# Basin Delineation workflow
+# Basin tool for modeling drainage basins (raster output) 
+arcpy.AddMessage("Basin delineation starting...")
+dem_basin = Basin(flowdirRas)
+dem_basin.save(os.path.join(gdb_path, st_name + "_basin"))
+BasinRas = (os.path.join(gdb_path, st_name + "_basin"))
+arcpy.AddMessage("Basin delineation complete...")
+
+# Convert basin raster to polygon feature class (drainage basin)
+arcpy.AddMessage("Basin polygon generation starting...")
+arcpy.RasterToPolygon_conversion(BasinRas, os.path.join(gdb_path, st_name + "_basinpoly"), "SIMPLIFY", "VALUE")
+BasinPoly = (os.path.join(gdb_path, st_name + "_basinpoly"))
+arcpy.AddMessage("Basin polygon generation complete...")
+
+#deleting variables or checking in tools
+arcpy.AddMessage("Proceed with intermediate data handling option...")
+
+if keep_opt == 'false':
+    arcpy.AddMessage("Deleting intermediate data...")
+    # Execute Delete
+    arcpy.Delete_management(fillRaster)
+    arcpy.Delete_management(flowdirRas)
+    arcpy.Delete_management(flowaccRas)
+    arcpy.Delete_management(conRaster)
+    arcpy.Delete_management(SORaster)
+    arcpy.Delete_management(StreamF)
+    arcpy.Delete_management(BasinRas)
+elif keep_opt == 'true':
+    arcpy.AddMessage("Intermediate data are stored in {} GDB.".format(gdb_name))
+    
+# Check in the Spatial Analyst extention
+arcpy.CheckInExtension("Spatial")
+arcpy.AddMessage("Spatial Analyst extention checked in...")
